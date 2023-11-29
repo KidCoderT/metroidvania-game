@@ -1,11 +1,11 @@
 import pygame
 
-from scripts.utils import setup_img
-from .types import Size, Image
+from scripts.utils import setup_img, get_scale_factor
+from .types import Size, Image, Scale
 
 
 class SpriteSheet:
-    def __init__(self, tile_size: Size, img: Image, scale: float = 1.0):
+    def __init__(self, tile_size: Size, img: Image, scale: Scale):
         self.img: pygame.SurfaceType = setup_img(img)
 
         assert (
@@ -17,7 +17,7 @@ class SpriteSheet:
         self.no_of_tiles_x = self.img.get_width() // tile_size[0]
         self.no_of_tiles_y = self.img.get_height() // tile_size[1]
 
-        self.scale = scale
+        self.scale = get_scale_factor(tile_size, scale)
         self.tile_size = tile_size
         self.tiles = []
 
@@ -44,7 +44,8 @@ class SpriteSheet:
                         self.tile_size[0] * self.scale,
                         self.tile_size[1] * self.scale,
                     )
-                )
+                , pygame.SRCALPHA)
+                
                 tile.blit(self.scaled_img, (-x, -y))
                 tiles.append(tile)
 
@@ -61,44 +62,3 @@ class SpriteSheet:
     def height(self):
         return self.tile_size[1] * self.scale
 
-
-class Animation:
-    def __init__(self, frames: list[pygame.SurfaceType], duration=3, loop=True):
-        self.current_frame = 0
-        self.anim_duration = duration
-        self.frames = frames
-        self.loop = loop
-        self.done = False
-
-    def update(self):
-        if self.loop:
-            self.current_frame = (self.current_frame + 1) % (
-                self.anim_duration * len(self.frames)
-            )
-            return
-
-        self.frame = min(
-            self.current_frame + 1, self.anim_duration * len(self.frames) - 1
-        )
-        if self.current_frame >= self.anim_duration * len(self.frames) - 1:
-            self.done = True
-
-    def img(self):
-        return self.frames[int(self.current_frame / self.anim_duration)]
-
-    def reset(self):
-        self.current_frame = 0
-        self.done = False
-
-
-class AnimatedSpritesheet(Animation):
-    def __init__(
-        self,
-        tile_size: Size,
-        img: Image,
-        scale: float = 1.0,
-        duration: float | int = 3,
-        loop=True,
-    ):
-        self.spritesheet = SpriteSheet(tile_size, img, scale)
-        super().__init__(self.spritesheet.tiles, duration, loop)
